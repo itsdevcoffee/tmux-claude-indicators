@@ -1,0 +1,38 @@
+#!/bin/bash
+# Claude Code thinking animation - cycles through emojis while Claude is thinking
+# Usage: claude-thinking-animator <tmux_pane_id>
+
+PANE="${1:-$TMUX_PANE}"
+
+if [ -z "$PANE" ]; then
+    echo "Error: No pane specified"
+    exit 1
+fi
+
+# Animation frames: 😜 → 🤪 → 😵‍💫 → 🤪
+FRAMES=("😜" "🤪" "😵‍💫" "🤪")
+FRAME_COUNT=${#FRAMES[@]}
+FRAME_INDEX=0
+
+# Interval in milliseconds (140-180ms, using 160ms average)
+INTERVAL=0.16
+
+# Keep animating until state changes from "thinking"
+while true; do
+    # Check if state is still "thinking"
+    current_state=$(tmux show-window-option -t "$PANE" -v @claude-state 2>/dev/null)
+
+    if [ "$current_state" != "thinking" ]; then
+        # Stop animation if state changed
+        exit 0
+    fi
+
+    # Update the emoji in @claude-thinking-frame
+    tmux set-window-option -t "$PANE" @claude-thinking-frame "${FRAMES[$FRAME_INDEX]}"
+
+    # Move to next frame
+    FRAME_INDEX=$(( (FRAME_INDEX + 1) % FRAME_COUNT ))
+
+    # Sleep for interval
+    sleep "$INTERVAL"
+done

@@ -1,0 +1,43 @@
+#!/bin/bash
+# Clean up all Claude indicator state and background processes
+# Can be used for disabling indicators or debugging
+
+set -euo pipefail
+
+# Determine tmpdir
+TMPDIR="${TMUX_TMPDIR:-/tmp}"
+
+# Kill all background processes by PID files
+for pid_file in "${TMPDIR}"/claude-animator-*.pid "${TMPDIR}"/claude-timer-*.pid "${TMPDIR}"/claude-flash-*.pid; do
+    # Check if glob matched any files (avoid error if no files exist)
+    [ -e "$pid_file" ] || continue
+
+    if [ -f "$pid_file" ]; then
+        PID=$(cat "$pid_file" 2>/dev/null | head -1)
+        # FIX: Use kill -0 to check if process exists
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            kill "$PID" 2>/dev/null || true
+        fi
+        rm -f "$pid_file"
+    fi
+done
+
+# Kill any orphaned animator processes (fallback)
+# More specific pattern to avoid killing unrelated processes
+pkill -f "bin/claude-thinking-animator" 2>/dev/null || true
+
+# Clear tmux state for all windows in current session
+if [ -n "${TMUX:-}" ]; then
+    for win_id in $(tmux list-windows -F "#{window_id}" 2>/dev/null); do
+        tmux set-window-option -t "$win_id" -u @claude-state 2>/dev/null || true
+        tmux set-window-option -t "$win_id" -u @claude-thinking-frame 2>/dev/null || true
+        tmux set-window-option -t "$win_id" -u @claude-timestamp 2>/dev/null || true
+        tmux set-window-option -t "$win_id" -u window-status-style 2>/dev/null || true
+    done
+
+    tmux display-message "Claude indicators cleaned up"
+else
+    echo "All Claude indicator processes and PID files cleaned up"
+fi
+
+exit 0

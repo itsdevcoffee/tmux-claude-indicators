@@ -1,0 +1,10 @@
+#!/bin/bash
+# Clear Claude state for all windows in current session
+
+# Get all window IDs in current session
+for win_id in $(tmux list-windows -F "#{window_id}"); do
+    tmux set-window-option -t "$win_id" @claude-state "active"
+    tmux set-window-option -t "$win_id" -u window-status-style
+done
+
+tmux display-message "All Claude states cleared"

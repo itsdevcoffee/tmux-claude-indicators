@@ -1,0 +1,15 @@
+#!/bin/bash
+# Enable Claude Code indicators in tmux
+
+# Apply formats multiple times with delay to override tmux2k
+for i in {1..3}; do
+    # Non-current window format with background colors for question/waiting states
+    tmux set -g window-status-format '#{?@claude-state,#{?#{==:#{@claude-state},question},#[fg=#000000#,bg=#b537f2#,bold#,blink],#{?#{==:#{@claude-state},waiting},#[fg=#FFFFFF#,bg=#9C0841#,bold#,blink],#[fg=#5a189a]}},#[fg=#5a189a]} │ #[fg=#708080]#I #[fg=#FFFFFF]#W#{?@claude-state,#{?#{==:#{@claude-state},active}, 🫥,#{?#{==:#{@claude-state},complete}, ✅,#{?#{==:#{@claude-state},waiting}, 🫦,#{?#{==:#{@claude-state},thinking},#{@claude-thinking-frame},#{?#{==:#{@claude-state},question}, 🔮,}}}}},} '
+
+    # Current window format with background colors for question/waiting states
+    tmux set -g window-status-current-format '#{?@claude-state,#{?#{==:#{@claude-state},question},#[fg=#000000#,bg=#b537f2#,bold#,blink],#{?#{==:#{@claude-state},waiting},#[fg=#FFFFFF#,bg=#9C0841#,bold#,blink],#[fg=#b537f2]}},#[fg=#b537f2]} │ #[fg=#b537f2,bold]#I #[fg=#b537f2,bold]#W#{?@claude-state,#{?#{==:#{@claude-state},active}, 🫥,#{?#{==:#{@claude-state},complete}, ✅,#{?#{==:#{@claude-state},waiting}, 🫦,#{?#{==:#{@claude-state},thinking},#{@claude-thinking-frame},#{?#{==:#{@claude-state},question}, 🔮,}}}}},} '
+
+    sleep 0.1
+done
+
+tmux display-message "Claude indicators enabled"
