@@ -6,18 +6,27 @@ Never miss when Claude is thinking, waiting for permission, or needs your attent
 
 ## Features
 
-- **🫥 Active** - Claude is idle, ready for input
-- **😜🤪😵‍💫 Thinking** - Animated emoji while Claude processes your request
-- **🔮 Question** - Claude needs permission (purple background)
-- **🫦 Waiting** - Question unanswered for >15s (magenta background)
-- **✅ Complete** - Task finished (teal flash for 3s)
+**Cyberpunk/TRON-inspired theme with vibrant state indicators:**
+
+- **🤖 Active** - Claude ready to work (deep purple #300B5F)
+- **😜🤪😵‍💫 Thinking** - Animated while processing (hot pink #F706CF)
+- **🔮 Question** - Needs permission (deep violet #791E94, blinks)
+- **🫦 Waiting** - Question unanswered >15s (laser blue #035EE8, blinks)
+- **✅ Complete** - Task finished (matrix green #02F78E flash, 3s)
+
+**Smart focus indicator:**
+- **Non-current windows:** Colored backgrounds show state at-a-glance
+- **Current window:** ▶ Arrow + colored text + transparent background
+- **No Claude:** Rust brown theme (#8B4513) for non-Claude windows
 
 ## Preview
 
 ```
-Status Bar: │ 1 dotfiles 🫥  │ 2 api-server 😜  │ 3 frontend 🔮
-                 ↑              ↑                ↑
-              Idle          Thinking       Needs permission
+Non-current: │ 1 dotfiles 🤖  │ 2 api 😜  │ 3 frontend 🔮
+              ▼ colored bg     ▼ pink bg   ▼ violet bg
+
+Current:     ▶ 4 backend ✅
+              ▼ arrow + colored text + no bg (stands out!)
 ```
 
 ## Requirements
@@ -62,7 +71,7 @@ After installation:
 1. **Enable indicators**: `Ctrl-a K` (or your prefix + K)
 2. **Start Claude Code** in a tmux window
 3. **Submit a prompt** and watch the status bar change:
-   - 🫥 → 😜 (thinking) → ✅ (complete)
+   - 🤖 (deep purple) → 😜 (hot pink, animated) → ✅ (matrix green flash)
 
 ## Keybindings
 
@@ -87,16 +96,23 @@ Add these to your `.tmux.conf` to customize appearance:
 set -g @claude-indicators-enabled "on"
 
 # Emoji customization
-set -g @claude-indicators-emoji-active "🫥"
+set -g @claude-indicators-emoji-active "🤖"
 set -g @claude-indicators-emoji-thinking "😜 🤪 😵‍💫"
 set -g @claude-indicators-emoji-question "🔮"
 set -g @claude-indicators-emoji-waiting "🫦"
 set -g @claude-indicators-emoji-complete "✅"
 
-# Color customization (hex codes)
-set -g @claude-indicators-color-question "#b537f2"   # Purple
-set -g @claude-indicators-color-waiting "#9C0841"    # Magenta
-set -g @claude-indicators-color-complete "#11dddd"   # Teal
+# Color customization - Cyberpunk/TRON theme (hex codes)
+set -g @claude-indicators-color-active-bg "#300B5F"      # Deep purple
+set -g @claude-indicators-color-active-fg "#FFFFFF"      # White
+set -g @claude-indicators-color-thinking-bg "#F706CF"    # Hot pink
+set -g @claude-indicators-color-thinking-fg "#FFFFFF"    # White
+set -g @claude-indicators-color-question-bg "#791E94"    # Deep violet
+set -g @claude-indicators-color-question-fg "#FFFFFF"    # White
+set -g @claude-indicators-color-waiting-bg "#035EE8"     # Laser blue
+set -g @claude-indicators-color-waiting-fg "#FFFFFF"     # White
+set -g @claude-indicators-color-complete-bg "#02F78E"    # Matrix green
+set -g @claude-indicators-color-complete-fg "#000000"    # Black
 
 # Timing
 set -g @claude-indicators-interval "160"      # Animation speed (ms)
@@ -140,17 +156,17 @@ run-shell '~/.tmux/plugins/tmux-claude-indicators/bin/tmux-claude-indicators-on'
 ### State Machine
 
 ```
-active (🫥)
+active (🤖, deep purple #300B5F)
   ↓ UserPromptSubmit
-thinking (😜🤪😵‍💫 animated)
+thinking (😜🤪😵‍💫 animated, hot pink #F706CF)
   ↓ Notification:permission_prompt
-question (🔮, purple background)
+question (🔮, deep violet #791E94, blinks)
   ↓ [15s timeout]
-waiting (🫦, magenta background)
+waiting (🫦, laser blue #035EE8, blinks)
   ↓ PreToolUse
 thinking
   ↓ Stop
-complete (✅, teal flash 3s)
+complete (✅, matrix green #02F78E flash, 3s)
   ↓ SessionStart
 active
 ```
