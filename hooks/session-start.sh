@@ -31,8 +31,8 @@ if ! tmux set-window-option -t "$TMUX_PANE" @claude-state "active" 2>/dev/null; 
     echo "Warning: Failed to set window state for pane $TMUX_PANE" >&2
 fi
 
-# Set TRON-like cyan neon background for active state
-tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=#2DE2E6,fg=#000000,bold" 2>/dev/null || true
+# Set soft lavender background for active state (calming, ready)
+tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=#A78BFA,fg=#1a0a2e,bold" 2>/dev/null || true
 
 # Kill any previous animator
 PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${TMUX_PANE}.pid"

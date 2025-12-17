@@ -20,8 +20,8 @@ tmux set-option -gq @claude-indicators-emoji-waiting "🫦"
 tmux set-option -gq @claude-indicators-emoji-complete "✅"
 
 # Color settings - Cyberpunk/TRON aesthetic
-tmux set-option -gq @claude-indicators-color-active-bg "#2DE2E6"      # Cyan neon
-tmux set-option -gq @claude-indicators-color-active-fg "#000000"      # Black
+tmux set-option -gq @claude-indicators-color-active-bg "#A78BFA"      # Soft lavender
+tmux set-option -gq @claude-indicators-color-active-fg "#1a0a2e"      # Dark purple
 tmux set-option -gq @claude-indicators-color-thinking-bg "#F706CF"    # Hot pink
 tmux set-option -gq @claude-indicators-color-thinking-fg "#FFFFFF"    # White
 tmux set-option -gq @claude-indicators-color-question-bg "#791E94"    # Deep violet
