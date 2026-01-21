@@ -5,31 +5,48 @@ PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
 SETTINGS_BACKUP="${HOME}/.claude/settings.json.backup-$(date +%Y%m%d-%H%M%S)"
 
+# Parse arguments
+QUIET=false
+if [ "$1" = "--quiet" ] || [ "$1" = "-q" ]; then
+    QUIET=true
+fi
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo "🎨 Installing tmux-claude-indicators..."
+# Logging functions
+log() {
+    if [ "$QUIET" = false ]; then
+        log "$@"
+    fi
+}
+
+log_always() {
+    log "$@"
+}
+
+log "🎨 Installing tmux-claude-indicators..."
 
 # Check dependencies
 if ! command -v tmux >/dev/null 2>&1; then
-    echo -e "${RED}✗ Error: tmux not found${NC}"
-    echo "  Please install tmux first"
+    log -e "${RED}✗ Error: tmux not found${NC}"
+    log "  Please install tmux first"
     exit 1
 fi
 
 if ! command -v clod >/dev/null 2>&1; then
-    echo -e "${YELLOW}⚠ Warning: Claude Code (clod) not found${NC}"
-    echo "  Install from: https://claude.ai/download"
-    echo "  Continuing anyway (you can install Claude Code later)..."
+    log -e "${YELLOW}⚠ Warning: Claude Code (clod) not found${NC}"
+    log "  Install from: https://claude.ai/download"
+    log "  Continuing anyway (you can install Claude Code later)..."
 fi
 
 # Check if running in tmux
 if [ -z "$TMUX" ]; then
-    echo -e "${YELLOW}⚠ Not running in tmux session${NC}"
-    echo "  Plugin will be configured, but indicators won't work until you're in tmux"
+    log -e "${YELLOW}⚠ Not running in tmux session${NC}"
+    log "  Plugin will be configured, but indicators won't work until you're in tmux"
 fi
 
 # Create Claude Code config directory if it doesn't exist
@@ -37,15 +54,15 @@ mkdir -p "${HOME}/.claude"
 
 # Backup existing settings if they exist
 if [ -f "$SETTINGS_FILE" ]; then
-    echo "📦 Backing up existing settings to: ${SETTINGS_BACKUP}"
+    log "📦 Backing up existing settings to: ${SETTINGS_BACKUP}"
     cp "$SETTINGS_FILE" "$SETTINGS_BACKUP"
 else
-    echo "📝 Creating new settings.json"
+    log "📝 Creating new settings.json"
     echo '{}' > "$SETTINGS_FILE"
 fi
 
 # Inject hooks into settings.json
-echo "🔗 Injecting Claude Code hooks..."
+log "🔗 Injecting Claude Code hooks..."
 
 # Use Python for reliable JSON manipulation (fallback to manual if Python not available)
 if command -v python3 >/dev/null 2>&1; then
@@ -113,38 +130,38 @@ except Exception as e:
     raise
 EOF
 else
-    echo -e "${YELLOW}⚠ Python not found - hooks not auto-configured${NC}"
-    echo "  Please manually add hooks to ~/.claude/settings.json"
-    echo "  See: ${PLUGIN_DIR}/config/example-settings.json"
+    log -e "${YELLOW}⚠ Python not found - hooks not auto-configured${NC}"
+    log "  Please manually add hooks to ~/.claude/settings.json"
+    log "  See: ${PLUGIN_DIR}/config/example-settings.json"
 fi
 
 # Apply tmux format strings (only if in tmux)
 if [ -n "$TMUX" ]; then
-    echo "🎨 Applying tmux status bar formats..."
+    log "🎨 Applying tmux status bar formats..."
     "$PLUGIN_DIR/bin/tmux-claude-indicators-on"
 
     # Enable indicators by default
     tmux set -g @claude-indicators-enabled on
 
-    echo -e "${GREEN}✓ Installation complete!${NC}"
-    echo ""
-    echo "🎉 Claude Code indicators are now active!"
-    echo ""
-    echo "Controls:"
-    echo "  Ctrl-a K        Enable indicators"
-    echo "  Ctrl-a Alt-k    Disable indicators"
-    echo "  Ctrl-a C        Clear current window state"
-    echo "  Ctrl-a Alt-c    Clear all window states"
-    echo ""
-    echo "States:"
-    echo "  🫥  Active (waiting for input)"
-    echo "  😜🤪😵‍💫  Thinking (animated)"
-    echo "  🔮  Question (needs permission)"
-    echo "  🫦  Waiting (question unanswered >15s)"
-    echo "  ✅  Complete (task finished)"
-    echo ""
-    echo "Note: Restart Claude Code sessions to load hooks"
+    log -e "${GREEN}✓ Installation complete!${NC}"
+    log ""
+    log "🎉 Claude Code indicators are now active!"
+    log ""
+    log "Controls:"
+    log "  Ctrl-a K        Enable indicators"
+    log "  Ctrl-a Alt-k    Disable indicators"
+    log "  Ctrl-a C        Clear current window state"
+    log "  Ctrl-a Alt-c    Clear all window states"
+    log ""
+    log "States:"
+    log "  🫥  Active (waiting for input)"
+    log "  😜🤪😵‍💫  Thinking (animated)"
+    log "  🔮  Question (needs permission)"
+    log "  🫦  Waiting (question unanswered >15s)"
+    log "  ✅  Complete (task finished)"
+    log ""
+    log "Note: Restart Claude Code sessions to load hooks"
 else
-    echo -e "${GREEN}✓ Configuration complete!${NC}"
-    echo "  Start a tmux session and press Ctrl-a K to enable indicators"
+    log -e "${GREEN}✓ Configuration complete!${NC}"
+    log "  Start a tmux session and press Ctrl-a K to enable indicators"
 fi
