@@ -13,9 +13,14 @@ if [ -z "$PANE" ]; then
 fi
 
 # Acquire exclusive lock - only one animator per pane allowed
-# Lock file doubles as our mutex - automatically released on exit
 LOCK_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${PANE}.lock"
 exec 200>"$LOCK_FILE"
+
+# Cleanup: explicitly close lock FD on exit (prevents FD leaks to children)
+cleanup() {
+    exec 200>&-
+}
+trap cleanup EXIT INT TERM
 
 # Non-blocking exclusive lock - exit immediately if another animator holds it
 if ! flock -n 200; then
@@ -24,7 +29,6 @@ if ! flock -n 200; then
 fi
 
 # We now hold the exclusive lock for this pane
-# Lock will be released automatically when this process exits
 
 # Animation frames: 😜 → 🤪 → 😵‍💫 → 🤪
 FRAMES=("😜" "🤪" "😵‍💫" "🤪")
