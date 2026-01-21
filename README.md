@@ -66,30 +66,55 @@ tmux source-file ~/.tmux.conf
 
 ## Quick Start
 
-After installation:
+After installation, keybindings are **automatically configured**:
 
-1. **Enable indicators**: `Ctrl-a K` (or your prefix + K)
-2. **Start Claude Code** in a tmux window
-3. **Submit a prompt** and watch the status bar change:
+1. **Start Claude Code** in a tmux window
+2. **Submit a prompt** and watch the status bar change:
    - 🤖 (deep purple) → 😜 (hot pink, animated) → ✅ (matrix green flash)
+
+The plugin is enabled by default. Use the keybindings below to control it.
 
 ## Keybindings
 
+**Automatically configured** - no manual setup required!
+
 | Keybinding | Action |
 |------------|--------|
-| `prefix + K` | Enable indicators |
-| `prefix + Alt-k` | Disable indicators |
-| `prefix + C` | Clear current window state |
-| `prefix + Alt-c` | Clear all window states |
-| `prefix + M` | Show all window states |
+| `prefix + Alt+Shift+K` | Enable indicators |
+| `prefix + Alt+K` | Disable indicators |
+| `prefix + Alt+C` | Clear current window state |
+| `prefix + Alt+Shift+C` | Clear all window states |
 
 *Default prefix: `Ctrl-a` (or `Ctrl-b` on vanilla tmux)*
+
+### Customize Keybindings
+
+Change keybindings by setting these options in `.tmux.conf` **before** loading the plugin:
+
+```tmux
+# Customize keybindings (set to empty string "" to disable)
+set -g @claude-key-enable "M-K"       # Alt+Shift+K (default)
+set -g @claude-key-disable "M-k"      # Alt+K (default)
+set -g @claude-key-clear "M-c"        # Alt+C (default)
+set -g @claude-key-clear-all "M-C"    # Alt+Shift+C (default)
+
+# Load plugin (must be after customization)
+set -g @plugin 'itsdevcoffee/tmux-claude-indicators'
+```
+
+**Key format guide:**
+- `M-k` = Alt+K
+- `M-K` = Alt+Shift+K
+- `C-k` = Ctrl+K
+- `k` = Just K (with prefix)
 
 ## Configuration
 
 ### Customization Options
 
-Add these to your `.tmux.conf` to customize appearance:
+Add these to your `.tmux.conf` **before** loading the plugin to customize:
+
+**Note:** Set options before `set -g @plugin` line for them to take effect.
 
 ```tmux
 # Enable/disable (default: on)
@@ -183,7 +208,7 @@ active
 
 2. Enable manually:
    ```tmux
-   Ctrl-a K
+   prefix + Alt+Shift+K
    ```
 
 3. Restart Claude Code sessions (hooks load at startup)
