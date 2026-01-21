@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code thinking animation - cycles through emojis while Claude is thinking
 # Usage: claude-thinking-animator <tmux_pane_id>
 #

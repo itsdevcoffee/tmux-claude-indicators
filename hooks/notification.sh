@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code Notification hook - fires when Claude is waiting for input
 # Updates tmux window state to show waiting/needs attention
 

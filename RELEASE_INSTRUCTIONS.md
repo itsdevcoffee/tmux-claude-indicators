@@ -99,7 +99,7 @@ Should see:
 - `bin/`
 - `hooks/`
 - `scripts/`
-- `claude-indicators.tmux`
+- `claude-code.tmux`
 - `README.md`
 - `LICENSE`
 
@@ -108,7 +108,7 @@ Should see:
 Verify hooks were added to Claude Code settings:
 
 ```bash
-cat ~/.claude/settings.json | grep claude-indicators
+cat ~/.claude/settings.json | grep tmux-claude-code
 ```
 
 Should see hook paths pointing to the plugin directory.
@@ -162,11 +162,11 @@ ls ${TMUX_TMPDIR:-/tmp}/claude-*.pid
 **Indicators not showing:**
 ```bash
 # Check if enabled
-tmux show -gv @claude-indicators-enabled
+tmux show -gv @claude-enabled
 # Should output: on
 
 # Enable manually
-tmux set -g @claude-indicators-enabled on
+tmux set -g @claude-enabled on
 ~/.tmux/plugins/tmux-claude-code/bin/tmux-claude-code-on
 ```
 

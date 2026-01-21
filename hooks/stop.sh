@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code Stop hook - fires when Claude finishes responding
 # Updates tmux window state to show completion
 

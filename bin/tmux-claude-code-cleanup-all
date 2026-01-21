@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Clean up all Claude indicator state and background processes
 # Can be used for disabling indicators or debugging
 

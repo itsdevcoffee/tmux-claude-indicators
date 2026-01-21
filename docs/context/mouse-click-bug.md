@@ -116,7 +116,7 @@ colors work perfectly, but mouse clicks broken on active/thinking/question/waiti
 
 **supporting:**
 - `hooks/*.sh` - set @claude-state and window-status-style
-- `claude-indicators.tmux` - color/emoji defaults
+- `claude-code.tmux` - color/emoji defaults
 - `.tmux.conf.local` - tmux configuration and keybindings
 
 ## observations

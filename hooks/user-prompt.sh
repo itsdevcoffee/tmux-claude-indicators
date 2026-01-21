@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code UserPromptSubmit/PreToolUse hook - fires when user submits input or Claude uses a tool
 # Starts thinking animation
 

@@ -56,7 +56,7 @@ chmod +x "$CURRENT_DIR/scripts/"*.sh
 
 # Run installation (quiet mode if already installed)
 # First run will show output, subsequent reloads will be silent
-if [ -f "${HOME}/.claude/settings.json" ] && grep -q "claude-indicators" "${HOME}/.claude/settings.json" 2>/dev/null; then
+if [ -f "${HOME}/.claude/settings.json" ] && grep -q "tmux-claude-code" "${HOME}/.claude/settings.json" 2>/dev/null; then
     "$CURRENT_DIR/scripts/install.sh" --quiet
 else
     "$CURRENT_DIR/scripts/install.sh"

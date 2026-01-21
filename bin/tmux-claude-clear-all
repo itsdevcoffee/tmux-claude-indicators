@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Clear Claude state for all windows in current session
 
 # Get all window IDs in current session

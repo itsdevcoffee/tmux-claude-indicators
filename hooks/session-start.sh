@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code SessionStart hook - initializes window state
 # Sets initial state to "active" and cleans up any previous processes
 

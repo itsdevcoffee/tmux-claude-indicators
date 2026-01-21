@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Enable Claude Code indicators in tmux - Cyberpunk theme
 # Uses ##HEX## pattern for hex codes inside conditionals
 

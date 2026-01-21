@@ -230,7 +230,7 @@ rm ${TMUX_TMPDIR:-/tmp}/claude-animator-*.pid
 
 1. Verify hooks in `~/.claude/settings.json`:
    ```bash
-   cat ~/.claude/settings.json | grep claude-indicators
+   cat ~/.claude/settings.json | grep tmux-claude-code
    ```
 
 2. Re-run installation:
@@ -266,7 +266,7 @@ set -g @claude-debug "on"
 
 Then check logs:
 ```bash
-tail -f ${TMUX_TMPDIR:-/tmp}/claude-indicators-debug.log
+tail -f ${TMUX_TMPDIR:-/tmp}/tmux-claude-code-debug.log
 ```
 
 ## Uninstall
