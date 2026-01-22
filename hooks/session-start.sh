@@ -35,7 +35,8 @@ fi
 tmux set-window-option -t "$TMUX_PANE" @claude-emoji "🤖" 2>/dev/null || true
 
 # Set deep purple/indigo background for active state (robot ready)
-tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=#300B5F,fg=#FFFFFF,bold" 2>/dev/null || true
+# Using colour256 instead of hex to avoid corrupting tmux's range declarations
+tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=colour54,fg=colour255,bold" 2>/dev/null || true
 
 # Kill any previous animator
 PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${TMUX_PANE}.pid"

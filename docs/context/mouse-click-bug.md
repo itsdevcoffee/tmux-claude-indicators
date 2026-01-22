@@ -1,4 +1,36 @@
-# mouse click bug - context for fresh investigation
+# mouse click bug - RESOLVED
+
+## root cause (discovered 2026-01-22)
+
+**The bug:** Hex colors in `window-status-style` corrupt tmux's range declarations.
+
+When `window-status-style` is set with hex colors (e.g., `bg=#300B5F`), tmux expands it via `#{E:window-status-style}` into the `status-format`. The `#` character is special in tmux format strings, causing corruption:
+
+```
+# Before (corrupted):
+range=window|2 bg=#300B5F,fg=##FFFFF,bold bold]  ← ##FFFFF is wrong!
+range=window|4 bg=##-706CF,fg=##-FFFFF,bold bold]  ← completely mangled!
+
+# After (fixed with colour256):
+range=window|2 bg=colour54,fg=colour255,bold bold]  ← clean!
+range=window|4 bg=colour200,fg=colour255,bold bold]  ← clean!
+```
+
+**The fix:** Use `colour256` indices instead of hex colors in `window-status-style`.
+
+## colour256 mapping
+
+| State    | Hex Color | colour256 | Description   |
+|----------|-----------|-----------|---------------|
+| active   | #300B5F   | colour54  | deep purple   |
+| thinking | #F706CF   | colour200 | hot pink      |
+| question | #791E94   | colour128 | deep violet   |
+| waiting  | #035EE8   | colour33  | laser blue    |
+| complete | #02F78E   | colour48  | matrix green  |
+
+---
+
+# historical context (pre-fix)
 
 ## problem statement
 
@@ -273,15 +305,21 @@ hooks are registered in `~/.claude/settings.json` pointing to local dev paths.
 
 ## success criteria
 
-**ideal:** colors work AND all states clickable
+**ideal:** colors work AND all states clickable ✅ ACHIEVED!
 **acceptable:** colors work, document mouse limitation
 **unacceptable:** no colors (current state without commit 188b818)
 
-## immediate next steps
+## resolution
 
-1. verify colors are showing (should be if using commit 188b818)
-2. test clicking on each state systematically
-3. try the debugging commands above to isolate the issue
-4. propose a solution or acceptable compromise
+**Fixed on 2026-01-22** by replacing hex colors with colour256 indices in all hooks:
+- `hooks/session-start.sh`
+- `hooks/user-prompt.sh`
+- `hooks/notification.sh`
+- `hooks/stop.sh`
 
-good luck! 🔍
+The fix avoids tmux's format string parsing issue where `#` characters in hex colors get corrupted when expanded via `#{E:window-status-style}` into range declarations.
+
+Sources that helped diagnose:
+- [tmux GitHub issue #1332](https://github.com/tmux/tmux/issues/1332) - comma escaping in conditionals
+- [tmux GitHub issue #4011](https://github.com/tmux/tmux/issues/4011) - range declarations and `#[norange]`
+- [tmux format-strings.sh test suite](https://github.com/tmux/tmux/blob/master/regress/format-strings.sh)

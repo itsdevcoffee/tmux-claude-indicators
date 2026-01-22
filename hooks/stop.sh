@@ -50,7 +50,8 @@ tmux set-window-option -t "$TMUX_PANE" @claude-emoji "✅" 2>/dev/null || true
 tmux set-window-option -t "$TMUX_PANE" @claude-timestamp "$(date +%s)" 2>/dev/null || true
 
 # Flash the window (brief visual alert) - Matrix green hacker success
-tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=#02F78E,fg=#000000,bold" 2>/dev/null || true
+# Using colour256 instead of hex to avoid corrupting tmux's range declarations
+tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=colour48,fg=colour232,bold" 2>/dev/null || true
 
 # Reset the flash after 3 seconds (runs in background)
 # Track flash PID to allow cancellation if needed

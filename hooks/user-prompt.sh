@@ -32,7 +32,8 @@ tmux set-window-option -t "$TMUX_PANE" @claude-thinking-frame "😜" 2>/dev/null
 # Don't set @claude-emoji for thinking state - format string handles it directly
 
 # Set hot pink background for intense processing vibe
-tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=#F706CF,fg=#FFFFFF,bold" 2>/dev/null || true
+# Using colour256 instead of hex to avoid corrupting tmux's range declarations
+tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=colour200,fg=colour255,bold" 2>/dev/null || true
 
 # Define lock/PID paths now that we have TMUX_PANE
 LOCK_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${TMUX_PANE}.lock"
