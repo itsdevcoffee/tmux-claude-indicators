@@ -87,7 +87,8 @@ hook_configs = {
     "UserPromptSubmit": f"{plugin_dir}/hooks/user-prompt.sh",
     "PreToolUse": f"{plugin_dir}/hooks/user-prompt.sh",  # Same as UserPromptSubmit
     "Stop": f"{plugin_dir}/hooks/stop.sh",
-    "Notification": f"{plugin_dir}/hooks/notification.sh"
+    "Notification": f"{plugin_dir}/hooks/notification.sh",
+    "SessionEnd": f"{plugin_dir}/hooks/session-end.sh"
 }
 
 # Inject each hook (preserve existing hooks)

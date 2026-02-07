@@ -11,6 +11,20 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Kill window animator helper function
+kill_window_animator() {
+    local window="$1"
+    local pid_file="${TMUX_TMPDIR:-/tmp}/claude-animator-${window}.pid"
+
+    if [ -f "$pid_file" ]; then
+        local pid=$(cat "$pid_file" 2>/dev/null | head -1)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+        fi
+        rm -f "$pid_file"
+    fi
+}
+
 # Check if indicators are enabled
 if [ "$(tmux show -gv @claude-enabled 2>/dev/null)" != "on" ]; then
     cat > /dev/null  # Consume hook input
@@ -38,36 +52,33 @@ fi
 
 # Handle permission_prompt as question state
 if [ "$notification_type" = "permission_prompt" ]; then
-    # Kill thinking animator if running
-    ANIMATOR_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${TMUX_PANE}.pid"
-    if [ -f "$ANIMATOR_PID_FILE" ]; then
-        ANIMATOR_PID=$(cat "$ANIMATOR_PID_FILE" 2>/dev/null | head -1)
-        # FIX: Use kill -0 to check if process exists
-        if [ -n "$ANIMATOR_PID" ] && kill -0 "$ANIMATOR_PID" 2>/dev/null; then
-            kill "$ANIMATOR_PID" 2>/dev/null || true
-        fi
-        rm -f "$ANIMATOR_PID_FILE"
-    fi
+    # Get script directory for relative paths
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+    # Get window ID for animator cleanup
+    WINDOW=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}' 2>/dev/null) || exit 1
+
+    # Kill thinking animator if running (window-level)
+    ANIMATOR_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${WINDOW}.pid"
+    kill_window_animator "$WINDOW"
 
     # Kill any previous escalation timer
     TIMER_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-timer-${TMUX_PANE}.pid"
     if [ -f "$TIMER_PID_FILE" ]; then
-        TIMER_PID=$(cat "$TIMER_PID_FILE" 2>/dev/null | head -1)
-        # FIX: Use kill -0 to check if process exists
-        if [ -n "$TIMER_PID" ] && kill -0 "$TIMER_PID" 2>/dev/null; then
-            kill "$TIMER_PID" 2>/dev/null || true
-        fi
+        local timer_pid=$(cat "$TIMER_PID_FILE" 2>/dev/null | head -1)
+        [ -n "$timer_pid" ] && kill -0 "$timer_pid" 2>/dev/null && kill "$timer_pid" 2>/dev/null || true
         rm -f "$TIMER_PID_FILE"
     fi
 
-    # Set question state
-    if ! tmux set-window-option -t "$TMUX_PANE" @claude-state "question" 2>/dev/null; then
-        echo "Warning: Failed to set question state for pane $TMUX_PANE" >&2
-    fi
-    tmux set-window-option -t "$TMUX_PANE" @claude-timestamp "$(date +%s)" 2>/dev/null || true
+    # Set per-pane state (pane option, survives aggregation)
+    tmux set-option -p -t "$TMUX_PANE" @claude-pane-state "question" 2>/dev/null || true
+    tmux set-option -p -t "$TMUX_PANE" @claude-pane-emoji "🔮" 2>/dev/null || true
 
-    # Set emoji for question state
-    tmux set-window-option -t "$TMUX_PANE" @claude-emoji "🔮" 2>/dev/null || true
+    # Aggregate all panes and update window display
+    "$SCRIPT_DIR/bin/claude-aggregate-state" "$TMUX_PANE"
+
+    # Set timestamp for state change
+    tmux set-window-option -t "$TMUX_PANE" @claude-timestamp "$(date +%s)" 2>/dev/null || true
 
     # Set deep violet mystery background (initial question state)
     # Using colour256 instead of hex to avoid corrupting tmux's range declarations
@@ -76,12 +87,14 @@ if [ "$notification_type" = "permission_prompt" ]; then
     # Start 15-second timer in background to escalate if unanswered
     (
         sleep 15
-        # Check if still in question state after 15 seconds
-        current_state=$(tmux show-window-option -t "$TMUX_PANE" -v @claude-state 2>/dev/null)
-        if [ "$current_state" = "question" ]; then
+        # Check if this pane is still in question state after 15 seconds
+        current_pane_state=$(tmux show-option -p -t "$TMUX_PANE" -v @claude-pane-state 2>/dev/null)
+        if [ "$current_pane_state" = "question" ]; then
             # Escalate to laser blue cool hold (waiting state)
-            tmux set-window-option -t "$TMUX_PANE" @claude-state "waiting" 2>/dev/null || true
-            tmux set-window-option -t "$TMUX_PANE" @claude-emoji "🫦" 2>/dev/null || true
+            tmux set-option -p -t "$TMUX_PANE" @claude-pane-state "waiting" 2>/dev/null || true
+            tmux set-option -p -t "$TMUX_PANE" @claude-pane-emoji "🫦" 2>/dev/null || true
+            # Re-aggregate to update window display
+            "$SCRIPT_DIR/bin/claude-aggregate-state" "$TMUX_PANE"
             # Using colour256 instead of hex to avoid corrupting tmux's range declarations
             tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=colour33,fg=colour255,bold,blink" 2>/dev/null || true
         fi
@@ -91,24 +104,22 @@ if [ "$notification_type" = "permission_prompt" ]; then
 
 # Handle idle_prompt - set to active state
 elif [ "$notification_type" = "idle_prompt" ]; then
-    # Kill thinking animator if running
-    ANIMATOR_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${TMUX_PANE}.pid"
-    if [ -f "$ANIMATOR_PID_FILE" ]; then
-        ANIMATOR_PID=$(cat "$ANIMATOR_PID_FILE" 2>/dev/null | head -1)
-        # FIX: Use kill -0 to check if process exists
-        if [ -n "$ANIMATOR_PID" ] && kill -0 "$ANIMATOR_PID" 2>/dev/null; then
-            kill "$ANIMATOR_PID" 2>/dev/null || true
-        fi
-        rm -f "$ANIMATOR_PID_FILE"
-    fi
+    # Get script directory for relative paths
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-    # Set to active state (Claude is idle, ready for input)
-    if ! tmux set-window-option -t "$TMUX_PANE" @claude-state "active" 2>/dev/null; then
-        echo "Warning: Failed to set active state for pane $TMUX_PANE" >&2
-    fi
+    # Get window ID for animator cleanup
+    WINDOW=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}' 2>/dev/null) || exit 1
 
-    # Set emoji for active state
-    tmux set-window-option -t "$TMUX_PANE" @claude-emoji "🤖" 2>/dev/null || true
+    # Kill thinking animator if running (window-level)
+    ANIMATOR_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${WINDOW}.pid"
+    kill_window_animator "$WINDOW"
+
+    # Set per-pane state (pane option, survives aggregation)
+    tmux set-option -p -t "$TMUX_PANE" @claude-pane-state "active" 2>/dev/null || true
+    tmux set-option -p -t "$TMUX_PANE" @claude-pane-emoji "🤖" 2>/dev/null || true
+
+    # Aggregate all panes and update window display
+    "$SCRIPT_DIR/bin/claude-aggregate-state" "$TMUX_PANE"
 
     # Set deep purple/indigo background for active state (robot ready)
     # Using colour256 instead of hex to avoid corrupting tmux's range declarations

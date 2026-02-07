@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Aggregate per-pane Claude states into window-level display variables
+# Usage: claude-aggregate-state <pane_id>
+set -euo pipefail
+
+PANE="${1:-$TMUX_PANE}"
+[ -z "$PANE" ] && exit 1
+
+# Get the window containing this pane
+WINDOW=$(tmux display-message -t "$PANE" -p '#{window_id}' 2>/dev/null) || exit 1
+
+# State priority (lower = more urgent)
+state_priority() {
+    case "$1" in
+        waiting)  echo 1 ;;
+        question) echo 2 ;;
+        thinking) echo 3 ;;
+        active)   echo 4 ;;
+        complete) echo 5 ;;
+        stale)    echo 6 ;;
+        ended)    echo 7 ;;
+        *)        echo 99 ;;
+    esac
+}
+
+# Superscript digits for count badge
+superscript() {
+    local n="$1"
+    local chars=("" "¹" "²" "³" "⁴" "⁵" "⁶" "⁷" "⁸" "⁹")
+    if [ "$n" -le 9 ] 2>/dev/null; then
+        echo "${chars[$n]}"
+    else
+        echo "⁺"  # 10+ panes, just show plus
+    fi
+}
+
+# Read all pane states in this window
+count=0
+worst_priority=99
+worst_state=""
+worst_emoji=""
+has_thinking=false
+
+while IFS='|' read -r pane_id pane_state pane_emoji pane_cmd; do
+    [ -z "$pane_state" ] && continue
+
+    # Detect stale pane state: if the pane's current command is a shell,
+    # Claude has exited and the state is leftover. Clear it and skip.
+    case "$pane_cmd" in
+        bash|zsh|fish|sh|dash|ksh|tcsh|csh|"")
+            tmux set-option -p -t "$pane_id" -u @claude-pane-state 2>/dev/null || true
+            tmux set-option -p -t "$pane_id" -u @claude-pane-emoji 2>/dev/null || true
+            continue
+            ;;
+    esac
+
+    count=$((count + 1))
+
+    if [ "$pane_state" = "thinking" ]; then
+        has_thinking=true
+    fi
+
+    priority=$(state_priority "$pane_state")
+    if [ "$priority" -lt "$worst_priority" ]; then
+        worst_priority=$priority
+        worst_state="$pane_state"
+        worst_emoji="$pane_emoji"
+    fi
+done < <(tmux list-panes -t "$WINDOW" \
+    -F '#{pane_id}|#{@claude-pane-state}|#{@claude-pane-emoji}|#{pane_current_command}' 2>/dev/null)
+
+# If no Claude panes found, clear window state
+if [ "$count" -eq 0 ]; then
+    tmux set-window-option -t "$WINDOW" -u @claude-state 2>/dev/null || true
+    tmux set-window-option -t "$WINDOW" -u @claude-emoji 2>/dev/null || true
+    tmux set-window-option -t "$WINDOW" -u @claude-count 2>/dev/null || true
+    tmux set-window-option -t "$WINDOW" -u @claude-count-display 2>/dev/null || true
+    exit 0
+fi
+
+# Set window-level display variables
+tmux set-window-option -t "$WINDOW" @claude-state "$worst_state" 2>/dev/null || true
+tmux set-window-option -t "$WINDOW" @claude-count "$count" 2>/dev/null || true
+
+# For thinking state, the emoji comes from @claude-thinking-frame (animated)
+# For other states, set the emoji from the worst-state pane
+if [ "$worst_state" != "thinking" ]; then
+    tmux set-window-option -t "$WINDOW" @claude-emoji "$worst_emoji" 2>/dev/null || true
+fi
+
+# Set count badge (superscript, only when >1)
+if [ "$count" -gt 1 ]; then
+    tmux set-window-option -t "$WINDOW" @claude-count-display "$(superscript $count)" 2>/dev/null || true
+else
+    tmux set-window-option -t "$WINDOW" -u @claude-count-display 2>/dev/null || true
+fi
+
+# Handle animator lifecycle:
+# If worst state is "thinking", ensure an animator is running for this window.
+# The aggregator sets a flag; the calling hook will check and start animator if needed.
+ANIMATOR_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${WINDOW}.pid"
+
+if [ "$worst_state" = "thinking" ]; then
+    # Check if animator is already running for this window
+    if [ -f "$ANIMATOR_PID_FILE" ]; then
+        EXISTING_PID=$(cat "$ANIMATOR_PID_FILE" 2>/dev/null | head -1)
+        if [ -n "$EXISTING_PID" ] && kill -0 "$EXISTING_PID" 2>/dev/null; then
+            # Animator already running, nothing to do
+            exit 0
+        fi
+    fi
+    # Need to start animator - set flag so the hook knows
+    tmux set-window-option -t "$WINDOW" @claude-needs-animator "on" 2>/dev/null || true
+else
+    tmux set-window-option -t "$WINDOW" -u @claude-needs-animator 2>/dev/null || true
+fi
+
+exit 0

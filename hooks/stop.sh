@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# Get script directory for relative paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Cleanup trap handler
 cleanup() {
     [ -f "${PID_FILE:-}" ] && rm -f "$PID_FILE" 2>/dev/null || true
@@ -27,8 +30,21 @@ fi
 # Read hook input (JSON from Claude Code)
 hook_input=$(cat)
 
-# Kill thinking animator if running
-PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${TMUX_PANE}.pid"
+# Set per-pane state (pane option, survives aggregation)
+tmux set-option -p -t "$TMUX_PANE" @claude-pane-state "complete" 2>/dev/null || true
+tmux set-option -p -t "$TMUX_PANE" @claude-pane-emoji "✅" 2>/dev/null || true
+
+# Aggregate all panes and update window display
+"$SCRIPT_DIR/bin/claude-aggregate-state" "$TMUX_PANE"
+
+# Set timestamp for state change
+tmux set-window-option -t "$TMUX_PANE" @claude-timestamp "$(date +%s)" 2>/dev/null || true
+
+# Get window ID for animator cleanup
+WINDOW=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}' 2>/dev/null) || exit 1
+
+# Kill thinking animator if running (window-level)
+PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${WINDOW}.pid"
 if [ -f "$PID_FILE" ]; then
     ANIMATOR_PID=$(cat "$PID_FILE" 2>/dev/null | head -1)
     # FIX: Use kill -0 to check if process exists
@@ -38,24 +54,13 @@ if [ -f "$PID_FILE" ]; then
     rm -f "$PID_FILE"
 fi
 
-# Set window user option to mark as completed
-if ! tmux set-window-option -t "$TMUX_PANE" @claude-state "complete" 2>/dev/null; then
-    echo "Warning: Failed to set complete state for pane $TMUX_PANE" >&2
-fi
-
-# Set emoji for complete state
-tmux set-window-option -t "$TMUX_PANE" @claude-emoji "✅" 2>/dev/null || true
-
-# Set timestamp for state change
-tmux set-window-option -t "$TMUX_PANE" @claude-timestamp "$(date +%s)" 2>/dev/null || true
-
 # Flash the window (brief visual alert) - Matrix green hacker success
 # Using colour256 instead of hex to avoid corrupting tmux's range declarations
 tmux set-window-option -t "$TMUX_PANE" window-status-style "bg=colour48,fg=colour232,bold" 2>/dev/null || true
 
 # Reset the flash after 3 seconds (runs in background)
-# Track flash PID to allow cancellation if needed
-FLASH_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-flash-${TMUX_PANE}.pid"
+# Track flash PID to allow cancellation if needed (use window ID for consistency)
+FLASH_PID_FILE="${TMUX_TMPDIR:-/tmp}/claude-flash-${WINDOW}.pid"
 (sleep 3 && tmux set-window-option -t "$TMUX_PANE" -u window-status-style 2>/dev/null && rm -f "$FLASH_PID_FILE" 2>/dev/null) &
 echo $! > "$FLASH_PID_FILE"
 

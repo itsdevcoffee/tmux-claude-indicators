@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
 # Claude Code thinking animation - cycles through frames while Claude is thinking
-# Usage: claude-thinking-animator <tmux_pane_id>
+# Usage: claude-thinking-animator <tmux_window_id>
 #
-# Uses flock to ensure only ONE animator runs per pane at any time.
+# Uses flock to ensure only ONE animator runs per window at any time.
 # Lock is automatically released when process exits (crash-safe).
 
-PANE="${1:-$TMUX_PANE}"
+TARGET="${1:-$TMUX_PANE}"
 
-if [ -z "$PANE" ]; then
-    echo "Error: No pane specified"
+if [ -z "$TARGET" ]; then
+    echo "Error: No window/pane specified"
     exit 1
 fi
 
-# Acquire exclusive lock - only one animator per pane allowed
-LOCK_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${PANE}.lock"
+# Determine if target is a window or pane (windows start with @, panes with %)
+# For backward compatibility, if it's a pane, get its window
+if [[ "$TARGET" == %* ]]; then
+    # It's a pane, get the window
+    WINDOW=$(tmux display-message -t "$TARGET" -p '#{window_id}' 2>/dev/null) || exit 1
+else
+    # It's already a window
+    WINDOW="$TARGET"
+fi
+
+# Acquire exclusive lock - only one animator per window allowed
+LOCK_FILE="${TMUX_TMPDIR:-/tmp}/claude-animator-${WINDOW}.lock"
 exec 200>"$LOCK_FILE"
 
 # Cleanup: explicitly close lock FD on exit (prevents FD leaks to children)
@@ -24,11 +34,11 @@ trap cleanup EXIT INT TERM
 
 # Non-blocking exclusive lock - exit immediately if another animator holds it
 if ! flock -n 200; then
-    # Another animator is already running for this pane
+    # Another animator is already running for this window
     exit 0
 fi
 
-# We now hold the exclusive lock for this pane
+# We now hold the exclusive lock for this window
 
 # Read animation frames from tmux option, fallback to braille spinner
 # Braille characters are all single-width and identical size - no layout bounce
@@ -45,24 +55,25 @@ FRAME_COUNT=${#FRAMES[@]}
 FRAME_INDEX=0
 
 # Read interval from tmux option (in milliseconds), fallback to 160ms
+DEFAULT_INTERVAL_MS=160
 INTERVAL_MS=$(tmux show-option -gqv @claude-interval 2>/dev/null)
-INTERVAL_MS=${INTERVAL_MS:-160}
+INTERVAL_MS=${INTERVAL_MS:-$DEFAULT_INTERVAL_MS}
 
 # Convert milliseconds to seconds for sleep command
 INTERVAL=$(echo "scale=3; $INTERVAL_MS / 1000" | bc 2>/dev/null || echo "0.16")
 
 # Keep animating until state changes from "thinking"
 while true; do
-    # Check if state is still "thinking"
-    current_state=$(tmux show-window-option -t "$PANE" -v @claude-state 2>/dev/null)
+    # Check if state is still "thinking" (window-level aggregate state)
+    current_state=$(tmux show-window-option -t "$WINDOW" -v @claude-state 2>/dev/null)
 
     if [ "$current_state" != "thinking" ]; then
         # Stop animation if state changed
         exit 0
     fi
 
-    # Update the frame in @claude-thinking-frame
-    tmux set-window-option -t "$PANE" @claude-thinking-frame "${FRAMES[$FRAME_INDEX]}"
+    # Update the frame in @claude-thinking-frame (window-level)
+    tmux set-window-option -t "$WINDOW" @claude-thinking-frame "${FRAMES[$FRAME_INDEX]}"
 
     # Move to next frame
     FRAME_INDEX=$(( (FRAME_INDEX + 1) % FRAME_COUNT ))
