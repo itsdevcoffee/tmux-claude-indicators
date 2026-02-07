@@ -44,8 +44,12 @@ fi
 FRAME_COUNT=${#FRAMES[@]}
 FRAME_INDEX=0
 
-# Interval in milliseconds (140-180ms, using 160ms average)
-INTERVAL=0.16
+# Read interval from tmux option (in milliseconds), fallback to 160ms
+INTERVAL_MS=$(tmux show-option -gqv @claude-interval 2>/dev/null)
+INTERVAL_MS=${INTERVAL_MS:-160}
+
+# Convert milliseconds to seconds for sleep command
+INTERVAL=$(echo "scale=3; $INTERVAL_MS / 1000" | bc 2>/dev/null || echo "0.16")
 
 # Keep animating until state changes from "thinking"
 while true; do
