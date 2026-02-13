@@ -51,7 +51,7 @@ while true; do
         exit 0
     fi
 
-    tmux set-window-option -t "$WINDOW" @claude-thinking-frame "${FRAMES[$FRAME_INDEX]}"
+    tmux set-window-option -t "$WINDOW" @claude-thinking-frame "${FRAMES[$FRAME_INDEX]} "
     FRAME_INDEX=$(( (FRAME_INDEX + 1) % FRAME_COUNT ))
     sleep "$INTERVAL"
 done
